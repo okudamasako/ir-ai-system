@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIによる適時開示監視・X投稿支援システム</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --blue-deep: #1a3a5c;
+    --blue-mid: #2563a8;
+    --blue-light: #dbeafe;
+    --blue-pale: #f0f6ff;
+    --accent: #3b82f6;
+    --accent-soft: #60a5fa;
+    --green: #059669;
+    --green-light: #d1fae5;
+    --orange: #d97706;
+    --orange-light: #fef3c7;
+    --purple: #7c3aed;
+    --purple-light: #ede9fe;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border: #e2e8f0;
+    --bg: #ffffff;
+    --bg-subtle: #f8fafc;
+    --radius: 12px;
+    --radius-lg: 20px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow: 0 4px 16px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Noto Sans JP', 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-logo {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue-mid);
+    letter-spacing: 0.02em;
+  }
+  .header-badge {
+    font-size: 11px;
+    background: var(--blue-light);
+    color: var(--blue-mid);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 72px 24px 64px;
+    max-width: 680px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--blue-pale);
+    border: 1px solid #bfdbfe;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+    letter-spacing: 0.04em;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.1s forwards;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .hero h1 {
+    font-size: clamp(26px, 6vw, 40px);
+    font-weight: 700;
+    color: var(--blue-deep);
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.2s forwards;
+  }
+  .hero h1 span {
+    background: linear-gradient(135deg, var(--blue-mid), var(--accent-soft));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-sub {
+    font-size: 16px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-bottom: 16px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.3s forwards;
+  }
+  .hero-note {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.8;
+    max-width: 480px;
+    margin: 0 auto 36px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.4s forwards;
+  }
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--blue-mid);
+    color: #fff;
+    padding: 14px 30px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    box-shadow: 0 4px 20px rgba(37,99,168,0.3);
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.5s forwards;
+  }
+  .hero-cta:hover {
+    background: var(--blue-deep);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(37,99,168,0.35);
+  }
+  .hero-cta-arrow {
+    font-size: 18px;
+    transition: transform 0.2s ease;
+  }
+  .hero-cta:hover .hero-cta-arrow { transform: translateY(3px); }
+
+  /* ── SECTION WRAPPER ── */
+  section {
+    padding: 72px 24px;
+  }
+  .section-inner {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .section-title {
+    font-size: clamp(20px, 4vw, 28px);
+    font-weight: 700;
+    color: var(--blue-deep);
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  .section-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    max-width: 560px;
+  }
+  .section-header { margin-bottom: 40px; }
+  .divider {
+    width: 40px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-soft));
+    border-radius: 2px;
+    margin-top: 14px;
+    margin-bottom: 0;
+  }
+
+  /* ── DIAGRAM SECTION ── */
+  .diagram-section {
+    background: var(--bg-subtle);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .diagram-wrap {
+    background: #fff;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    padding: 8px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .diagram-wrap img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 12px;
+  }
+  .diagram-caption {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .flow-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--blue-pale);
+    color: var(--blue-mid);
+    border: 1px solid #bfdbfe;
+  }
+  .flow-arrow {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  /* ── MVP CARDS ── */
+  .mvp-section { background: var(--bg); }
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-soft));
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: #bfdbfe; }
+  .card:hover::before { opacity: 1; }
+  .card-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--blue-deep);
+    margin-bottom: 6px;
+  }
+  .card-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+  }
+
+  /* ── TECH STACK ── */
+  .tech-section { background: var(--blue-pale); border-top: 1px solid #bfdbfe; border-bottom: 1px solid #bfdbfe; }
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  .tech-item {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    transition: box-shadow 0.2s ease;
+  }
+  .tech-item:hover { box-shadow: var(--shadow); }
+  .tech-icon-wrap {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .tech-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--blue-deep);
+    margin-bottom: 3px;
+  }
+  .tech-role {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ── PHASE2 ── */
+  .phase2-section { background: var(--bg); }
+  .phase2-intro {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: -24px;
+    margin-bottom: 36px;
+  }
+  .phase2-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .phase2-item {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    transition: background 0.2s ease;
+  }
+  .phase2-item:hover { background: var(--purple-light); border-color: #c4b5fd; }
+  .phase2-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--purple);
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+  .phase2-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+  }
+  .phase2-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+
+  /* ── CLOSING ── */
+  .closing-section {
+    background: var(--blue-deep);
+    color: #fff;
+    text-align: center;
+    padding: 80px 24px;
+  }
+  .closing-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-soft);
+    margin-bottom: 20px;
+    opacity: 0.85;
+  }
+  .closing-title {
+    font-size: clamp(20px, 4vw, 26px);
+    font-weight: 700;
+    line-height: 1.6;
+    max-width: 520px;
+    margin: 0 auto 16px;
+  }
+  .closing-body {
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    max-width: 480px;
+    margin: 0 auto 40px;
+    line-height: 1.85;
+  }
+  .closing-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+  .closing-badge {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.85);
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 400;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: #0d1f35;
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+    padding: 24px;
+    font-size: 12px;
+  }
+
+  /* ── SCROLL REVEAL ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    header { padding: 12px 16px; }
+    .hero { padding: 52px 20px 48px; }
+    section { padding: 56px 20px; }
+    .cards-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .card { padding: 18px 14px; }
+    .tech-grid { grid-template-columns: 1fr 1fr; }
+    .phase2-grid { grid-template-columns: 1fr 1fr; }
+    .flow-tag { font-size: 11px; }
+  }
+  @media (max-width: 380px) {
+    .cards-grid { grid-template-columns: 1fr; }
+    .tech-grid { grid-template-columns: 1fr; }
+    .phase2-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-logo">AI 適時開示支援</div>
+  <div class="header-badge">MVP 提案資料</div>
+</header>
+
+<!-- HERO -->
+<section class="hero" style="padding-top:72px;padding-bottom:64px;max-width:680px;">
+  <div class="hero-eyebrow">AI × 業務自動化</div>
+  <h1>AIによる<span>適時開示監視</span>・<br>X投稿支援システム</h1>
+  <p class="hero-sub">情報収集から投稿案作成までを最小工数で支援</p>
+  <p class="hero-note">
+    まずは"実際に回る最小構成"から構築し、<br>
+    運用しながら必要機能を段階的に追加していく形を想定しています。
+  </p>
+  <a href="#diagram" class="hero-cta">
+    システム構成を見る
+    <span class="hero-cta-arrow">↓</span>
+  </a>
+</section>
+
+<!-- DIAGRAM -->
+<section class="diagram-section" id="diagram">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-label">System Overview</div>
+      <div class="section-title">システム全体像</div>
+      <div class="divider"></div>
+    </div>
+    <div class="diagram-wrap reveal reveal-delay-1">
+      <img src="system-diagram.png" alt="AIによる適時開示監視・X投稿支援システム構成図" loading="lazy">
+    </div>
+    <div class="diagram-caption reveal reveal-delay-2">
+      <span class="flow-tag">📡 適時開示監視</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-tag">🤖 AI要約</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-tag">✍️ X投稿案生成</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-tag">🔔 LINE通知</span>
+    </div>
+  </div>
+</section>
+
+<!-- MVP FEATURES -->
+<section class="mvp-section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-label">MVP Features</div>
+      <div class="section-title">MVPで実現できること</div>
+      <div class="divider"></div>
+      <p class="section-desc" style="margin-top:12px;">まず動かすことを最優先に、必要な機能を厳選して構築します。</p>
+    </div>
+    <div class="cards-grid">
+      <div class="card reveal">
+        <div class="card-icon" style="background:#dbeafe;">👁️</div>
+        <div class="card-title">適時開示監視の自動化</div>
+        <div class="card-desc">重要情報の見逃しを減らす。証券取引所の情報収集を常時自動化します。</div>
+      </div>
+      <div class="card reveal reveal-delay-1">
+        <div class="card-icon" style="background:#d1fae5;">📝</div>
+        <div class="card-title">AIによる要約</div>
+        <div class="card-desc">重要ポイントをわかりやすく自動で整理・要約。</div>
+      </div>
+      <div class="card reveal reveal-delay-2">
+        <div class="card-icon" style="background:#fef3c7;">✏️</div>
+        <div class="card-title">X投稿案生成</div>
+        <div class="card-desc">投稿に使える文案を複数パターンで自動提案します。</div>
+      </div>
+      <div class="card reveal reveal-delay-3">
+        <div class="card-icon" style="background:#ede9fe;">⏱️</div>
+        <div class="card-title">投稿作業時間の短縮</div>
+        <div class="card-desc">ゼロから考える時間を大幅削減。確認・投稿だけでOK。</div>
+      </div>
+      <div class="card reveal reveal-delay-4">
+        <div class="card-icon" style="background:#fce7f3;">📁</div>
+        <div class="card-title">情報整理の効率化</div>
+        <div class="card-desc">Googleスプレッドシートで全データを一元管理。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH STACK -->
+<section class="tech-section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-label">Tech Stack</div>
+      <div class="section-title">想定技術構成</div>
+      <div class="divider"></div>
+      <p class="section-desc" style="margin-top:12px;">既存サービスを組み合わせることで、初期コストを抑えながら素早く立ち上げられます。</p>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-item reveal">
+        <div class="tech-icon-wrap" style="background:#fff3e0;">🔧</div>
+        <div>
+          <div class="tech-name">Google Apps Script</div>
+          <div class="tech-role">自動処理のエンジン</div>
+        </div>
+      </div>
+      <div class="tech-item reveal reveal-delay-1">
+        <div class="tech-icon-wrap" style="background:#e8f5e9;">📊</div>
+        <div>
+          <div class="tech-name">Google スプレッドシート</div>
+          <div class="tech-role">データの収集・管理</div>
+        </div>
+      </div>
+      <div class="tech-item reveal reveal-delay-2">
+        <div class="tech-icon-wrap" style="background:#e3f2fd;">🤖</div>
+        <div>
+          <div class="tech-name">OpenAI / Gemini API</div>
+          <div class="tech-role">AIによる要約・文案生成</div>
+        </div>
+      </div>
+      <div class="tech-item reveal reveal-delay-3">
+        <div class="tech-icon-wrap" style="background:#fce4ec;">🔔</div>
+        <div>
+          <div class="tech-name">Slack または LINE通知</div>
+          <div class="tech-role">リアルタイム通知</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PHASE 2 -->
+<section class="phase2-section">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <div class="section-label">Phase 2+</div>
+      <div class="section-title">今後の拡張可能性</div>
+      <div class="divider"></div>
+    </div>
+    <p class="phase2-intro reveal">運用データをもとに、必要と感じた順に追加していく形を想定しています。</p>
+    <div class="phase2-grid">
+      <div class="phase2-item reveal">
+        <div class="phase2-dot"></div>
+        <div>
+          <div class="phase2-name">社長文体反映</div>
+          <div class="phase2-desc">話し方・文体を学習して文案に反映</div>
+        </div>
+      </div>
+      <div class="phase2-item reveal reveal-delay-1">
+        <div class="phase2-dot"></div>
+        <div>
+          <div class="phase2-name">投稿履歴DB化</div>
+          <div class="phase2-desc">過去の投稿・開示内容をDB管理</div>
+        </div>
+      </div>
+      <div class="phase2-item reveal reveal-delay-2">
+        <div class="phase2-dot"></div>
+        <div>
+          <div class="phase2-name">市場反応分析</div>
+          <div class="phase2-desc">いいね・リプ等の反応を自動分析</div>
+        </div>
+      </div>
+      <div class="phase2-item reveal reveal-delay-3">
+        <div class="phase2-dot"></div>
+        <div>
+          <div class="phase2-name">X自動投稿</div>
+          <div class="phase2-desc">最適タイミングでの自動投稿</div>
+        </div>
+      </div>
+      <div class="phase2-item reveal reveal-delay-1">
+        <div class="phase2-dot"></div>
+        <div>
+          <div class="phase2-name">投稿精度学習</div>
+          <div class="phase2-desc">反応データをもとに精度を向上</div>
+        </div>
+      </div>
+      <div class="phase2-item reveal reveal-delay-2">
+        <div class="phase2-dot"></div>
+        <div>
+          <div class="phase2-name">半自律エージェント化</div>
+          <div class="phase2-desc">判断・投稿まで自律的にサポート</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSING -->
+<section class="closing-section">
+  <div style="max-width:600px;margin:0 auto;">
+    <div class="closing-tag">Our Approach</div>
+    <div class="closing-title">
+      まずは"小さく作って回す"<br>ことを重視します
+    </div>
+    <p class="closing-body">
+      実運用を通して必要機能を整理・拡張していく形を推奨しております。<br>
+      完璧なシステムを最初から作るのではなく、<br>
+      動くものを素早く届け、現場の声をもとに育てていく開発スタイルです。
+    </p>
+    <div class="closing-badges">
+      <div class="closing-badge">🔄 段階的な機能追加</div>
+      <div class="closing-badge">⚡ 素早い立ち上げ</div>
+      <div class="closing-badge">📈 運用しながら改善</div>
+      <div class="closing-badge">🛡️ 低リスクで開始</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div>AIによる適時開示監視・X投稿支援システム — システム提案資料</div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  reveals.forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
